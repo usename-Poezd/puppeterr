@@ -18,14 +18,12 @@ import BlockResources from 'puppeteer-extra-plugin-block-resources'
     const cluster = await Cluster.launch({
         puppeteer,
         concurrency: Cluster.CONCURRENCY_CONTEXT,
-        maxConcurrency: 20,
+        maxConcurrency: 25,
         monitor: true,
         puppeteerOptions: {
             executablePath: '/usr/bin/chromium-browser',
             headless: true,
             args: [
-                "--proxy-server='direct://'", 
-                '--proxy-bypass-list=*',
                 '--autoplay-policy=user-gesture-required',
                 '--disable-background-networking',
                 '--disable-background-timer-throttling',
@@ -76,13 +74,8 @@ import BlockResources from 'puppeteer-extra-plugin-block-resources'
 
     // setup the function to be executed for each request
     await cluster.task(async ({ page, data: url }) => {
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36')
-        const res = await page.goto(url, {waitUntil: 'domcontentloaded'});
+        await page.goto(url, {waitUntil: 'domcontentloaded'});
         const title = await  page.title();
-        const description = await page.$eval('meta[name="description"]', (element) => {
-            return element.getAttribute('content');
-          });
-
         const html = await page.content();
 
         page.close()
