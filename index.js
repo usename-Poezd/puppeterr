@@ -83,7 +83,6 @@ import BlockResources from 'puppeteer-extra-plugin-block-resources'
         return {
             html,
             title,
-            description
         };
     });
 
