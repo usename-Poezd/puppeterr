@@ -13,19 +13,19 @@ import BlockResources from 'puppeteer-extra-plugin-block-resources'
     const puppeteer = addExtra(vanillaPuppeteer)
     puppeteer.use(Stealth())
     puppeteer.use(BlockResources({
-        blockedTypes: new Set(['image', 'video', 'stylesheet', 'stylesheet', 'font', 'script', 'xhr', 'fetch', 'manifest'])
+        blockedTypes: new Set(['image', 'video','stylesheet', 'font', 'xhr', 'fetch', 'manifest'])
     }))
     const cluster = await Cluster.launch({
         puppeteer,
         concurrency: Cluster.CONCURRENCY_CONTEXT,
-        maxConcurrency: 25,
+        maxConcurrency: 25, 
         monitor: true,
         puppeteerOptions: {
             executablePath: '/usr/bin/chromium-browser',
             headless: true,
             args: [
                 '--autoplay-policy=user-gesture-required',
-                '--disable-background-networking',
+               
                 '--disable-background-timer-throttling',
                 '--disable-breakpad',
                 '--disable-client-side-phishing-detection',
@@ -61,7 +61,7 @@ import BlockResources from 'puppeteer-extra-plugin-block-resources'
                 '--ignore-certificate-errors',
                 '--enable-automation',
 
-                '--disable-background-timer-throttling',
+                
                 '--enable-automation',
                 '--disable-renderer-backgrounding',
                 '--disable-backgrounding-occluded-windows',
@@ -74,15 +74,24 @@ import BlockResources from 'puppeteer-extra-plugin-block-resources'
 
     // setup the function to be executed for each request
     await cluster.task(async ({ page, data: url }) => {
-        await page.goto(url, {waitUntil: 'domcontentloaded'});
-        const title = await  page.title();
+        await page.goto(url);
+        const parsedUrl = await page.url()
+        let description = '';
+        const title = await page.title();
         const html = await page.content();
+        try {
+            description = await page.$eval('meta[name="description"]', el => el.content);
+        } catch (error) {
+            //
+        }
 
         page.close()
 
         return {
+            url: parsedUrl,
             html,
             title,
+            description,
         };
     });
 
