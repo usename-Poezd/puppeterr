@@ -13,7 +13,7 @@ import BlockResources from 'puppeteer-extra-plugin-block-resources'
     const puppeteer = addExtra(vanillaPuppeteer)
     puppeteer.use(Stealth())
     puppeteer.use(BlockResources({
-        blockedTypes: new Set(['image', 'video','stylesheet', 'font', 'xhr', 'fetch', 'manifest'])
+        blockedTypes: new Set(['image', 'video', 'font', 'manifest'])
     }))
     const cluster = await Cluster.launch({
         puppeteer,
@@ -21,8 +21,10 @@ import BlockResources from 'puppeteer-extra-plugin-block-resources'
         maxConcurrency: 25, 
         monitor: true,
         puppeteerOptions: {
+            targetFilter: (target) => !!target.url(),
             executablePath: '/usr/bin/chromium-browser',
-            headless: true,
+            ignoreHTTPSErrors: true,
+            headless: 'new',
             args: [
                 '--autoplay-policy=user-gesture-required',
                
@@ -66,19 +68,30 @@ import BlockResources from 'puppeteer-extra-plugin-block-resources'
                 '--disable-renderer-backgrounding',
                 '--disable-backgrounding-occluded-windows',
                 '--disable-ipc-flooding-protection',
+                '--disable-quic'
             ],
-            userDataDir: './tmp'
         },
         timeout: 180000
     });
 
     // setup the function to be executed for each request
     await cluster.task(async ({ page, data: url }) => {
-        await page.goto(url);
+        try {
+            await page.goto(url, {waitUntil: 'domcontentloaded'});
+        } catch (error) {
+            await page.goto(url.replace("http:", "https:"), {waitUntil: 'domcontentloaded'});
+        }
+
         const parsedUrl = await page.url()
+        await new Promise((r) => setTimeout(r, 500))
         let description = '';
         const title = await page.title();
-        const html = await page.content();
+        let html = await page.content();
+        const extractedText = await page.$eval('*', (el) => el.innerText);
+        if (extractedText.length < 20) {
+            await new Promise((r) => setTimeout(r, 1500))
+            html = await page.content();
+        }
         try {
             description = await page.$eval('meta[name="description"]', el => el.content);
         } catch (error) {
