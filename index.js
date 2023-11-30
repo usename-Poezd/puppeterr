@@ -4,11 +4,15 @@ import { Cluster } from 'puppeteer-cluster';
 import vanillaPuppeteer from 'puppeteer'
 
 import { addExtra } from 'puppeteer-extra'
+import {Solver} from '2captcha-ts'
 import Stealth from 'puppeteer-extra-plugin-stealth'
 import BlockResources from 'puppeteer-extra-plugin-block-resources'
+import { readFileSync } from 'fs'
+
+
 
 (async () => {
-
+    const solver = new Solver("bbcda2736171d751b9ab1287fa17e77f")
     
     const puppeteer = addExtra(vanillaPuppeteer)
     puppeteer.use(Stealth())
@@ -24,7 +28,7 @@ import BlockResources from 'puppeteer-extra-plugin-block-resources'
             targetFilter: (target) => !!target.url(),
             executablePath: '/usr/bin/chromium-browser',
             ignoreHTTPSErrors: true,
-            headless: 'new',
+            headless: false,
             args: [
                 '--autoplay-policy=user-gesture-required',
                
@@ -76,6 +80,29 @@ import BlockResources from 'puppeteer-extra-plugin-block-resources'
 
     // setup the function to be executed for each request
     await cluster.task(async ({ page, data: url }) => {
+        const preloadFile = readFileSync('./inject.js', 'utf8')
+        await page.evaluateOnNewDocument(preloadFile)
+
+        page.on('console', async (msg) => {
+            const txt = msg.text()
+            if (txt.includes('intercepted-params:')) {
+                const params = JSON.parse(txt.replace('intercepted-params:', ''))
+        
+                try {
+                    const res = await solver[params.captcha](params)
+
+                    await page.evaluate((token) => {
+                        cfCallback(token)
+                    }, res.data)
+
+                } catch (e) {
+                    return
+                }
+            } else {
+                return;
+            }
+        })        
+
         try {
             await page.goto(url, {waitUntil: 'domcontentloaded'});
         } catch (error) {
