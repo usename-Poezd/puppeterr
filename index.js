@@ -83,6 +83,7 @@ import { readFileSync } from 'fs'
         const preloadFile = readFileSync('./inject.js', 'utf8')
         await page.evaluateOnNewDocument(preloadFile)
 
+        let updated = false
         page.on('console', async (msg) => {
             const txt = msg.text()
             if (txt.includes('intercepted-params:')) {
@@ -90,6 +91,8 @@ import { readFileSync } from 'fs'
         
                 try {
                     const res = await solver[params.captcha](params)
+
+                    updated = true
 
                     await page.evaluate((token) => {
                         cfCallback(token)
@@ -109,8 +112,27 @@ import { readFileSync } from 'fs'
             await page.goto(url.replace("http:", "https:"), {waitUntil: 'domcontentloaded'});
         }
 
+        
+
+       
+
         const parsedUrl = await page.url()
         await new Promise((r) => setTimeout(r, 500))
+        try {
+            let isTurnstile = await page.$eval('#turnstile-wrapper', (el) => !!el);
+            if (isTurnstile) { 
+                try {
+                    while (await page.$eval('#turnstile-wrapper', (el) => !!el)) {
+                        await new Promise((r) => setTimeout(r, 1000))
+                    }
+                } catch (error) {
+                    await new Promise((r) => setTimeout(r, 3000))
+                }
+            
+            }
+        } catch (error) {
+            
+        }
         let description = '';
         const title = await page.title();
         let html = await page.content();
