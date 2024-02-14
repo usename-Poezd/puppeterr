@@ -75,7 +75,7 @@ import { readFileSync } from 'fs'
                 '--disable-quic'
             ],
         },
-        timeout: 180000
+        timeout: 10000
     });
 
     // setup the function to be executed for each request
@@ -112,8 +112,6 @@ import { readFileSync } from 'fs'
             await page.goto(url.replace("http:", "https:"), {waitUntil: 'domcontentloaded'});
         }
 
-        
-
        
 
         const parsedUrl = await page.url()
@@ -133,8 +131,6 @@ import { readFileSync } from 'fs'
         } catch (error) {
             
         }
-        let description = '';
-        const title = await page.title();
         let html = await page.content();
         const extractedText = await page.$eval('*', (el) => el.innerText);
         if (extractedText.length < 20) {
@@ -149,12 +145,7 @@ import { readFileSync } from 'fs'
 
         page.close()
 
-        return {
-            url: parsedUrl,
-            html,
-            title,
-            description,
-        };
+        return html;
     });
 
     // setup server
@@ -165,7 +156,8 @@ import { readFileSync } from 'fs'
         try {
             const data = await cluster.execute(req.query.url);
 
-            res.json(data);
+            res.setHeader("Content-Type", "text/html")
+            res.send(data)
         } catch (err) {
             // catch error
             console.log(err.message)
