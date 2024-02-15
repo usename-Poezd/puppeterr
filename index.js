@@ -30,6 +30,7 @@ import { readFileSync } from 'fs'
             ignoreHTTPSErrors: true,
             headless: false,
             args: [
+                '--lang=en-US,en',
                 '--autoplay-policy=user-gesture-required',
                
                 '--disable-background-timer-throttling',
@@ -82,6 +83,9 @@ import { readFileSync } from 'fs'
     await cluster.task(async ({ page, data: url }) => {
         const preloadFile = readFileSync('./inject.js', 'utf8')
         await page.evaluateOnNewDocument(preloadFile)
+        await page.setExtraHTTPHeaders({
+            'Accept-Language': 'en'
+        });
 
         let updated = false
         page.on('console', async (msg) => {

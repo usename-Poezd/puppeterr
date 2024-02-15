@@ -1,4 +1,14 @@
 console.clear = () => console.log('Console was cleared')
+Object.defineProperty(navigator, "language", {
+    get: function() {
+        return "en-US";
+    }
+});
+Object.defineProperty(navigator, "languages", {
+    get: function() {
+        return ["en-US", "en"];
+    }
+});
 const i = setInterval(() => {
     if (window.turnstile) {
         clearInterval(i)
