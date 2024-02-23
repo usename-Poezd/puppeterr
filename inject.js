@@ -28,4 +28,19 @@ const i = setInterval(() => {
             return
         }
     }
+
+    yaSiteKey = document
+            .querySelector("#captcha-container")
+            .getAttribute("data-sitekey");
+
+    if (yaSiteKey) {
+        clearInterval(i)
+        let params = {
+            captcha: "yandexSmart",
+            sitekey: yaSiteKey,
+            pageurl: window.location.href,
+        }
+        console.log('intercepted-params:' + JSON.stringify(params))
+        return
+    }
 }, 50)

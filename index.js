@@ -30,7 +30,7 @@ import { readFileSync } from 'fs'
             ignoreHTTPSErrors: true,
             headless: false,
             args: [
-                '--lang=en-US,en',
+                '--lang=en-US',
                 '--autoplay-policy=user-gesture-required',
                
                 '--disable-background-timer-throttling',
@@ -93,15 +93,33 @@ import { readFileSync } from 'fs'
             if (txt.includes('intercepted-params:')) {
                 const params = JSON.parse(txt.replace('intercepted-params:', ''))
         
-                try {
+                try { 
+                    S
                     const res = await solver[params.captcha](params)
 
                     updated = true
 
-                    await page.evaluate((token) => {
-                        cfCallback(token)
-                    }, res.data)
 
+                    switch (params.captcha) {
+                        case "cloudflareTurnstile":
+                            await page.evaluate((token) => {
+                                cfCallback(token)
+                            }, res.data)
+                            break;
+                        case "yandexSmart":
+                            // Полученное решение
+                            // The resulting solution
+                            const captchaAnswer = res.data;
+
+                            // Использовать полученное решение на странице
+                            // Use the resulting solution on the page
+                            const setAnswer = await page.evaluate((captchaAnswer) => {
+                                document.querySelector("input[data-testid='smart-token']").value =
+                                captchaAnswer;
+                            }, captchaAnswer);
+
+                            break;
+                    }
                 } catch (e) {
                     return
                 }
@@ -120,21 +138,8 @@ import { readFileSync } from 'fs'
 
         const parsedUrl = await page.url()
         await new Promise((r) => setTimeout(r, 500))
-        try {
-            let isTurnstile = await page.$eval('#turnstile-wrapper', (el) => !!el);
-            if (isTurnstile) { 
-                try {
-                    while (await page.$eval('#turnstile-wrapper', (el) => !!el)) {
-                        await new Promise((r) => setTimeout(r, 1000))
-                    }
-                } catch (error) {
-                    await new Promise((r) => setTimeout(r, 3000))
-                }
-            
-            }
-        } catch (error) {
-            
-        }
+        await detectCaptchas(url, page)
+        
         let html = await page.content();
         const extractedText = await page.$eval('*', (el) => el.innerText);
         if (extractedText.length < 20) {
@@ -173,3 +178,25 @@ import { readFileSync } from 'fs'
         console.log('Server listening on port 3000.');
     });
 })();
+
+
+let detectCaptchas = async (url, page) => {
+    try {
+        let isTurnstile = await page.$eval('#turnstile-wrapper', (el) => !!el);
+        if (isTurnstile) { 
+            try {
+                while (await page.$eval('#turnstile-wrapper', (el) => !!el)) {
+                    await new Promise((r) => setTimeout(r, 1000))
+                }
+            } catch (error) {
+                await new Promise((r) => setTimeout(r, 3000))
+            }
+        
+        }
+    } catch (error) {
+        
+    }
+
+
+  
+}
